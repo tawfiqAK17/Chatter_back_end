@@ -1,3 +1,4 @@
+import { on } from 'events';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -42,3 +43,15 @@ app.post('/sign-in', (req, res) => {
     }
     res.send('false'); // Send 'false' when user not found or credentials don't match
 });
+
+//adding new user
+app.post('/sign-up', (req, res) => {
+    const new_user = req.body;
+    // duplicate name are not allowed
+    if(users.find(user => user.name === new_user.name)) {
+        return res.send('taken user name');
+    }
+    // adding the new user
+    users.push(new_user);
+    res.send('user added')
+})

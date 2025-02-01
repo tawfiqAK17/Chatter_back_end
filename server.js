@@ -3,7 +3,10 @@ import path from 'path';
 import mongoose from 'mongoose';
 import { fileURLToPath } from 'url';
 import { configDotenv } from 'dotenv';
-import sign_in_up_route from './routes/SignInUpRoutes.js';
+import cookieParser from 'cookie-parser';
+import sign_in_up_route from './routes/authRoutes.js';
+import jwt from 'jsonwebtoken';
+
 
 // .env config
 configDotenv();
@@ -17,6 +20,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files from the React app's build directory
 const buildPath = path.join(__dirname, '../Front-end/dist');
@@ -35,6 +39,18 @@ mongoose.connect(MONGO_URL)
 
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+
+// check if the user is authenticated
+app.post('/check-auth', (req, res) => {
+    try {
+        const token = req.cookies.jwt;
+        if (token) {
+            res.json({isAuth: jwt.verify(token, process.env.JWT_SECRET_STRING) ? true : false});
+        } 
+    } catch (err) {
+        res.json({isAuth: false});
+    }
+});
 
 //user authentication
 app.post('/sign-in', sign_in_up_route);

@@ -1,9 +1,8 @@
 import express, { Router } from "express";
-import message_model from "../../models/message.js";
+import { getMessages } from "../../controllers/routsControllers/messagesControllers.js";
 
 //create the router
-const user_router = express.Router();
+const messages_route = express.Router();
 
-user_router.get('/messages', () => {
-
-}) 
+messages_route.post('/get-messages', getMessages) 
+export default messages_route

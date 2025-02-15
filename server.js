@@ -9,12 +9,13 @@ import sign_in_up_route from './routes/authRoutes.js';
 import user_route from './routes/user_routs/userRouts.js';
 import jwt from 'jsonwebtoken';
 import { InitWebSocket, WebSocketEventListener } from './controllers/webSocketControllers.js';
+import messages_route from './routes/user_routs/MessagesRouts.js';
 
 // .env config
 configDotenv();
 const PORT = process.env.PORT;
 const MONGO_URL = process.env.MONGO_URL;
-const FRONT_END_URL = process.env.FRONT_END_URL;
+const FRONT_END_URLS = [process.env.FRONT_END_URL1, process.env.FRONT_END_URL2];
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -24,8 +25,9 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(cors({
-    origin: FRONT_END_URL,
+    origin: FRONT_END_URLS,
     credentials: true // Allow credentials
 }));
 
@@ -61,8 +63,11 @@ app.post('/sign-in', sign_in_up_route);
 //adding new user
 app.post('/sign-up', sign_in_up_route);
 
-// send users to the client 
+// handling the user requests 
 app.use('/user', user_route);
+
+// handling the messages requests
+app.use('/messages', messages_route);
 
 // Serve index.html for all frontend routes
 app.get('*', (req, res) => {

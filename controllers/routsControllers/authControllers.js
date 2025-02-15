@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt'
 import jsonwebtoken from 'jsonwebtoken';
 import { configDotenv } from 'dotenv';
-import user_model from '../models/user.js';
+import user_model from '../../models/user.js';
+import { creatUser } from '../modelsControllers/userModelControllers.js';
 
 
 configDotenv();
@@ -18,12 +19,17 @@ export const signInController = async (req, res) => {
         const { name, password } = req.body;
         // locking for the user
         const user = await user_model.findOne({name: name});
+        // check if the password sha match
         const match = await bcrypt.compare(password, user.password_SHA);
+        
+        // is the user has an account the auth token will be send
         if (user && match) {
             res.cookie('jwt', gen_jwt(user._id), { httpOnly: true });
             return res.status(200).json({ message: 'authenticated' });
         }
+        // the user has no account
         res.status(401).json({ message: 'authentication failed' }); 
+
     } catch (error) {
         res.status(500).json({});
         console.log(error);
@@ -33,22 +39,15 @@ export const signInController = async (req, res) => {
 export const signUpController = async (req, res) => {
     try {
         const new_user = req.body;
-        // duplicate name are not allowed
-        if(await user_model.countDocuments({name: new_user.name}) > 0) {
+        // duplicate names are not allowed
+        if(await user_model.findOne({name: new_user.name})) {
             return res.status(401).json({message: 'taken user name'});
         }
         // adding the new user
-        const user = await user_model.create({
-            name: new_user.name,
-            email: new_user.email,
-            // save the password hash
-            password_SHA: await bcrypt.hash(new_user.password, await bcrypt.genSalt()),
-            friends: [],
-            rooms: []
-        });
+        const user = creatUser(new_user);
+        // adding the authentication cookie 
         res.cookie('jwt', gen_jwt(user._id), { httpOnly: true });
         res.status(201).json({message: 'user added'});
-        console.log(`user: ${new_user.name} has just been added`);
     } catch (error) {
         res.status(500).json({});
         console.log(error);

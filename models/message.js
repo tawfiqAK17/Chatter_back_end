@@ -5,7 +5,8 @@ const message_schema = mongoose.Schema({
     sender: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
     receiver: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
     time: Date,
-    content: String
+    content: String,
+    readed: Boolean
 });
 
 //creating the message model

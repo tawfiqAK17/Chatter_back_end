@@ -10,6 +10,7 @@ import user_route from './routes/user_routs/userRouts.js';
 import jwt from 'jsonwebtoken';
 import { InitWebSocket, WebSocketEventListener } from './controllers/webSocketControllers.js';
 import messages_route from './routes/user_routs/MessagesRouts.js';
+import user_model from './models/user.js';
 
 // .env config
 configDotenv();
@@ -46,14 +47,20 @@ mongoose.connect(MONGO_URL)
 const server = app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
 // check if the user is authenticated
-app.post('/check-auth', (req, res) => {
+app.post('/check-auth', async (req, res) => {
     try {
         const token = req.cookies.jwt;
         if (token) {
-            res.json({isAuth: jwt.verify(token, process.env.JWT_SECRET_STRING) ? true : false});
+            const userId = jwt.verify(token, process.env.JWT_SECRET_STRING).id;
+            if (userId) {
+                const user = await user_model.findById(userId)
+                return res.json({ user });
+            }
+            res.json({ user: null})
         } 
     } catch (err) {
-        res.json({ isAuth: false });
+        res.status(500).json();
+        console.log(err);
     }
 });
 

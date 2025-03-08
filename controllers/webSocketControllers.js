@@ -19,20 +19,24 @@ export function InitWebSocket(server) {
 // websocket event listener
 export function WebSocketEventListener(io) {
     io.on('connection', (socket) => {
+
         // Parse jwt token 
-        const cookies = socket.request.headers.cookie.split('; ');
-        const jwtToken = cookies.find(cookie => cookie.startsWith('jwt='));
-        const user_id = jsonwebtoken.decode(jwtToken.substring(4)).id;
+        const cookies_string = socket.request.headers.cookie;
+        if (cookies_string) {
+            const cookies = socket.request.headers.cookie.split('; ');
+            const jwtToken = cookies.find(cookie => cookie.startsWith('jwt='));
+            const user_id = jsonwebtoken.decode(jwtToken.substring(4)).id;
 
-        // adding the socket to the currently connected users
-        socketStore.addSocket(user_id, socket.id);
+            // adding the socket to the currently connected users
+            socketStore.addSocket(user_id, socket.id);
 
-        socket.on('msg', (msg) => {
-            msgEventHandler(socket, msg, io);
-        })
-        socket.on('desconnect', () => {
-            socketStore.removeSocket(user_id);
-        })
+            socket.on('msg', (msg) => {
+                msgEventHandler(socket, msg, io);
+            })
+            socket.on('disconnect', () => {
+                socketStore.removeSocket(user_id);
+            })
+        }
     })
 }
 
@@ -47,10 +51,12 @@ const msgEventHandler = async (socket, msg, io) => {
     try {
 
         const message = await creatMessage(msg.content, sender_id, msg.receiverId, new Date().toString());
+        const sender_socket_id = socketStore.getSocketId(sender_id);
         if (socketStore.isConnected(msg.receiverId)) {
-            io.to(socketStore.getSocketId(msg.receiverId)).emit('update_messages', message);
+            const receiver_socket_id = socketStore.getSocketId(msg.receiverId);
+            io.sockets.sockets.get(receiver_socket_id).emit('update_messages', message);
         }
-        socket.emit('update_messages', message);
+        io.sockets.sockets.get(sender_socket_id).emit('update_messages', message);
         
 
     } catch (err) {

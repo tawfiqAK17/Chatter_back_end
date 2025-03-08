@@ -19,6 +19,11 @@ class SocketStore {
     getSocketId(user_id) {
         return this._sockets.get(user_id);
     }
+
+    // For debugging
+    getAllConnections() {
+        return Array.from(this._sockets.entries());
+    }
 }
 
 export default new SocketStore();

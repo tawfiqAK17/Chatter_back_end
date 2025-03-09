@@ -19,19 +19,17 @@ export const signInController = async (req, res) => {
         const { email, password } = req.body;
         // locking for the user
         const user = await user_model.findOne({email: email});
-        console.log(user);
         if (user) {
             // check if the password sha match
             const match = await bcrypt.compare(password, user.password_SHA);
             
             // is the user has an account the auth token will be send
             if (match) {
-                res.cookie('jwt', gen_jwt(user._id), { httpOnly: true });
-                return res.status(200).json({ authenticated: true });
+                return res.status(200).json({ jwt: gen_jwt(user._id)});
             }
         }
         // the user has no account
-        res.status(401).json({ authenticated: false}); 
+        res.status(401).json({}); 
 
     } catch (error) {
         res.status(500).json({});
@@ -44,13 +42,12 @@ export const signUpController = async (req, res) => {
         const new_user = req.body;
         // duplicate email are not allowed
         if(await user_model.findOne({email: new_user.email})) {
-            return res.status(401).json({ authenticated: false});
+            return res.status(401).json({});
         }
         // adding the new user
-        const user = creatUser(new_user);
-        // adding the authentication cookie 
-        res.cookie('jwt', gen_jwt(user._id), { httpOnly: true });
-        res.status(201).json({ authenticated: true});
+        await creatUser(new_user);
+        // sending the auth token
+        res.status(201).json({ jwt: gen_jwt(user._id) });
     } catch (error) {
         res.status(500).json({});
         console.log(error);

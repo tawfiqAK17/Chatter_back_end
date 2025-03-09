@@ -1,5 +1,5 @@
 import { Server } from 'socket.io'
-import jsonwebtoken from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { creatMessage } from './modelsControllers/messsageModelControllers.js';
 import socketStore from './socketStore.js';
 
@@ -20,36 +20,38 @@ export function InitWebSocket(server) {
 export function WebSocketEventListener(io) {
     io.on('connection', (socket) => {
 
-        // Parse jwt token 
-        const cookies_string = socket.request.headers.cookie;
-        if (cookies_string) {
-            const cookies = socket.request.headers.cookie.split('; ');
-            const jwtToken = cookies.find(cookie => cookie.startsWith('jwt='));
-            const user_id = jsonwebtoken.decode(jwtToken.substring(4)).id;
+    // the authorization header
+    const authHeader = socket.handshake.auth.token;
 
-            // adding the socket to the currently connected users
-            socketStore.addSocket(user_id, socket.id);
+    if (authHeader) {
+        // extracting the actual jwt 
+        const token = authHeader.split(' ')[1];
 
-            socket.on('msg', (msg) => {
-                msgEventHandler(socket, msg, io);
-            })
-            socket.on('disconnect', () => {
-                socketStore.removeSocket(user_id);
-            })
+        // verifying the authentication token
+        jwt.verify(token.replaceAll('"', ''), process.env.JWT_SECRET_STRING, (err, user) => {
+                if (user) {
+                    socket.user = user;
+                    // adding the socket to the currently connected users
+                    socketStore.addSocket(user.id, socket.id);
+
+                    socket.on('msg', (msg) => {
+                        msgEventHandler(socket, msg, io);
+                    })
+                    socket.on('disconnect', () => {
+                        socketStore.removeSocket(user.id);
+                    })
+                } else {
+                    console.log(err);
+                }
+            });
         }
     })
 }
 
 //msg event handler
 const msgEventHandler = async (socket, msg, io) => {
-    // Parse jwt token 
-    const cookies = socket.request.headers.cookie.split('; ');
-    const jwtToken = cookies.find(cookie => cookie.startsWith('jwt='));
-
-    // adding the message to the data base
-    const sender_id = jsonwebtoken.decode(jwtToken.substring(4)).id;
+    const sender_id = socket.user.id;
     try {
-
         const message = await creatMessage(msg.content, sender_id, msg.receiverId, new Date().toString());
         const sender_socket_id = socketStore.getSocketId(sender_id);
         if (socketStore.isConnected(msg.receiverId)) {

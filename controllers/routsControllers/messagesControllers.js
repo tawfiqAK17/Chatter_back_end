@@ -4,8 +4,7 @@ import user_model from '../../models/user.js';
 
 export const getMessages = async (req, res) => {
     try {
-        const token = req.cookies.jwt;        
-        const user_id = jsonwebtoken.decode(token).id;
+        const user_id = req.body.user.id; 
         const receiver_id = req.body.receiverId;
 
         const messages = await message_model.find( {$or: [

@@ -7,10 +7,8 @@ import { configDotenv } from 'dotenv';
 import cookieParser from 'cookie-parser';
 import sign_in_up_route from './routes/authRoutes.js';
 import user_route from './routes/user_routs/userRouts.js';
-import jwt from 'jsonwebtoken';
 import { InitWebSocket, WebSocketEventListener } from './controllers/webSocketControllers.js';
 import messages_route from './routes/user_routs/MessagesRouts.js';
-import user_model from './models/user.js';
 
 // .env config
 configDotenv();
@@ -24,13 +22,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(express.json());
-app.use(cookieParser());
-
 app.use(cors({
     origin: FRONT_END_URLS,
-    credentials: true // Allow credentials
 }));
+
+app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files from the React app's build directory
 const buildPath = path.join(__dirname, '../Front-end/dist');
@@ -45,24 +42,6 @@ mongoose.connect(MONGO_URL)
 
 // Start the server
 const server = app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
-// check if the user is authenticated
-app.post('/check-auth', async (req, res) => {
-    try {
-        const token = req.cookies.jwt;
-        if (token) {
-            const userId = jwt.verify(token, process.env.JWT_SECRET_STRING).id;
-            if (userId) {
-                const user = await user_model.findById(userId)
-                return res.json({ user });
-            }
-            res.json({ user: null})
-        } 
-    } catch (err) {
-        res.status(500).json();
-        console.log(err);
-    }
-});
 
 //user authentication
 app.post('/sign-in', sign_in_up_route);
